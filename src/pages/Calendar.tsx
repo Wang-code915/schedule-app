@@ -39,7 +39,6 @@ export const CalendarPage = () => {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  const selectedDateObj = new Date(selectedDate);
 
   const dayCourses = courses.filter((c) => c.date === selectedDate);
   const sortedCourses = [...dayCourses].sort(
