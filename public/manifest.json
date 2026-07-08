@@ -1,0 +1,17 @@
+{
+  "name": "排课管理系统",
+  "short_name": "排课系统",
+  "description": "教育培训机构排课、学生课时管理、薪资统计工具",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
