@@ -708,62 +708,7 @@ export const StudentsPage = () => {
               </div>
             )}
 
-            {(() => {
-              const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
-              if (monthCourses.length === 0) {
-                return (
-                  <div className="text-center py-6 text-gray-400">
-                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">本月暂无课程</p>
-                  </div>
-                );
-              }
 
-              const groupedByDate: { [date: string]: typeof monthCourses } = {};
-              monthCourses.forEach((course) => {
-                if (!groupedByDate[course.date]) {
-                  groupedByDate[course.date] = [];
-                }
-                groupedByDate[course.date].push(course);
-              });
-
-              return (
-                <div className="border-t border-gray-100 pt-3">
-                  <div className="text-xs text-gray-500 mb-2">课程时间</div>
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {Object.keys(groupedByDate)
-                      .sort()
-                      .map((date) => {
-                        const dayCourses = groupedByDate[date];
-                        const dayDate = new Date(date);
-                        return (
-                          <div key={date} className="flex items-center gap-2">
-                            <div className="w-7 text-xs text-gray-500 font-medium">
-                              {dayDate.getDate()}日
-                            </div>
-                            <div className="flex-1 flex flex-wrap gap-1">
-                              {dayCourses
-                                .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                                .map((course) => (
-                                  <span
-                                    key={course.id}
-                                    className={`text-xs px-1.5 py-0.5 rounded ${
-                                      selectedCourses.includes(course.id)
-                                        ? 'bg-primary-500 text-white'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}
-                                  >
-                                    {course.startTime}
-                                  </span>
-                                ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         )}
       </Modal>
