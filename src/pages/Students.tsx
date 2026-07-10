@@ -634,72 +634,193 @@ export const StudentsPage = () => {
                 </div>
               </div>
 
+              {(() => {
+                const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
+                const monthTotal = monthCourses.reduce((sum, c) => sum + c.rate, 0);
+                return (
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="p-3 bg-primary-50 rounded-lg">
+                      <div className="text-xs text-gray-500">本月课时</div>
+                      <div className="text-xl font-bold text-primary-600">{monthCourses.length} 节</div>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded-lg">
+                      <div className="text-xs text-gray-500">本月收入</div>
+                      <div className="text-xl font-bold text-orange-600">{formatCurrency(monthTotal)}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {selectedCourses.length > 0 && (
                 <div className="flex items-center justify-between mb-3 p-3 bg-red-50 rounded-lg">
                   <span className="text-sm text-red-600">已选择 {selectedCourses.length} 节课</span>
-                  <button
-                    onClick={handleBatchDelete}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    批量删除
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedCourses([])}
+                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleBatchDelete}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      删除
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {getStudentMonthCourses(selectedStudent.id, detailMonth).length === 0 ? (
-                <p className="text-gray-400 text-center py-4">本月暂无课程记录</p>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <button
-                      onClick={() => toggleSelectAllCourses(getStudentMonthCourses(selectedStudent.id, detailMonth))}
-                      className="text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      {selectedCourses.length === getStudentMonthCourses(selectedStudent.id, detailMonth).length
-                        ? '取消全选'
-                        : '全选'}
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {getStudentMonthCourses(selectedStudent.id, detailMonth)
-                      .sort((a, b) => a.date.localeCompare(a.date) || a.startTime.localeCompare(b.startTime))
-                      .map((course) => (
-                        <div
-                          key={course.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg text-sm cursor-pointer transition-colors ${
-                            selectedCourses.includes(course.id)
-                              ? 'bg-primary-50 border-2 border-primary-500'
-                              : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                          }`}
-                          onClick={() => toggleCourseSelection(course.id)}
-                        >
-                          <div
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              selectedCourses.includes(course.id)
-                                ? 'bg-primary-500 border-primary-500'
-                                : 'border-gray-300'
-                            }`}
-                          >
-                            {selectedCourses.includes(course.id) && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
+              {(() => {
+                const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
+                if (monthCourses.length === 0) {
+                  return <p className="text-gray-400 text-center py-4">本月暂无课程记录</p>;
+                }
+
+                const sortedCourses = [...monthCourses].sort(
+                  (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
+                );
+
+                const groupedByDate: { [date: string]: typeof sortedCourses } = {};
+                sortedCourses.forEach((course) => {
+                  if (!groupedByDate[course.date]) {
+                    groupedByDate[course.date] = [];
+                  }
+                  groupedByDate[course.date].push(course);
+                });
+
+                const dates = Object.keys(groupedByDate).sort();
+                const allSelected =
+                  selectedCourses.length > 0 &&
+                  selectedCourses.length === monthCourses.length;
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">共 {dates.length} 天有课</span>
+                      <button
+                        onClick={() => toggleSelectAllCourses(monthCourses)}
+                        className="text-sm text-primary-600 hover:text-primary-700"
+                      >
+                        {allSelected ? '取消全选' : '全选'}
+                      </button>
+                    </div>
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                      {dates.map((date) => {
+                        const dayCourses = groupedByDate[date];
+                        const dayDate = new Date(date);
+                        const dayTotal = dayCourses.reduce((sum, c) => sum + c.rate, 0);
+                        const dayAllSelected = dayCourses.every((c) =>
+                          selectedCourses.includes(c.id)
+                        );
+                        const someSelected = dayCourses.some((c) =>
+                          selectedCourses.includes(c.id)
+                        );
+
+                        return (
+                          <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
+                            <div
+                              className="flex items-center justify-between p-2 bg-gray-50 cursor-pointer"
+                              onClick={() => {
+                                if (dayAllSelected) {
+                                  setSelectedCourses((prev) =>
+                                    prev.filter((id) => !dayCourses.some((c) => c.id === id))
+                                  );
+                                } else {
+                                  setSelectedCourses((prev) => {
+                                    const newIds = dayCourses
+                                      .filter((c) => !prev.includes(c.id))
+                                      .map((c) => c.id);
+                                    return [...prev, ...newIds];
+                                  });
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                    dayAllSelected
+                                      ? 'bg-primary-500 border-primary-500'
+                                      : someSelected
+                                      ? 'bg-primary-200 border-primary-500'
+                                      : 'border-gray-300'
+                                  }`}
+                                >
+                                  {dayAllSelected && <Check className="w-3 h-3 text-white" />}
+                                  {!dayAllSelected && someSelected && (
+                                    <div className="w-2 h-0.5 bg-primary-500 rounded" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`w-9 h-9 rounded-lg flex flex-col items-center justify-center ${
+                                      dayAllSelected
+                                        ? 'bg-primary-500 text-white'
+                                        : 'bg-primary-100 text-primary-700'
+                                    }`}
+                                  >
+                                    <span className="text-xs leading-none">
+                                      {dayDate.getMonth() + 1}月
+                                    </span>
+                                    <span className="text-sm font-bold leading-none">
+                                      {dayDate.getDate()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500">
+                                      {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][dayDate.getDay()]}
+                                    </div>
+                                    <div className="text-xs text-gray-700 font-medium">
+                                      {dayCourses.length}节课 · {formatCurrency(dayTotal)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                              {dayCourses.map((course) => {
+                                const isSelected = selectedCourses.includes(course.id);
+                                return (
+                                  <div
+                                    key={course.id}
+                                    className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${
+                                      isSelected
+                                        ? 'bg-primary-50'
+                                        : 'bg-white hover:bg-gray-50'
+                                    }`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleCourseSelection(course.id);
+                                    }}
+                                  >
+                                    <div
+                                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                        isSelected
+                                          ? 'bg-primary-500 border-primary-500'
+                                          : 'border-gray-300'
+                                      }`}
+                                    >
+                                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                    <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                    <span className="text-sm text-gray-700 flex-1">
+                                      {course.startTime} - {course.endTime}
+                                    </span>
+                                    <span className="text-sm font-semibold text-primary-600">
+                                      {formatCurrency(course.rate)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <span className="text-gray-800">{course.date}</span>
-                            <span className="text-gray-400 mx-2">|</span>
-                            <span className="text-gray-600">
-                              {course.startTime} - {course.endTime}
-                            </span>
-                          </div>
-                          <span className="text-primary-600 font-medium">
-                            {formatCurrency(course.rate)}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </>
-              )}
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="flex gap-3">
