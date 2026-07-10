@@ -555,292 +555,203 @@ export const StudentsPage = () => {
 
       <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} size="lg">
         {selectedStudent && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <div
-                className={`w-16 h-16 rounded-lg flex items-center justify-center text-xl font-semibold ${
-                  selectedStudent.type === 'prepaid'
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-orange-100 text-orange-600'
-                }`}
-              >
-                {selectedStudent.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">{selectedStudent.name}</h3>
-                <span
-                  className={`inline-block mt-1 text-sm px-2 py-0.5 rounded-full ${
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold ${
                     selectedStudent.type === 'prepaid'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-orange-100 text-orange-700'
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-orange-100 text-orange-600'
                   }`}
                 >
-                  {selectedStudent.type === 'prepaid' ? '预付费学生' : '后付费学生'}
+                  {selectedStudent.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">{selectedStudent.name}</h3>
+                  {selectedStudent.type === 'prepaid' && (
+                    <p className="text-sm text-gray-500">
+                      剩余 <span className={`font-semibold ${selectedStudent.remainingHours <= 5 ? 'text-red-500' : 'text-primary-600'}`}>{selectedStudent.remainingHours}</span> 课时
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleOpenBatchScheduleModal}
+                className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                排课
+              </button>
+            </div>
+
+            <div className="border-t border-gray-100 pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  onClick={() =>
+                    setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() - 1, 1))
+                  }
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500 rotate-90" />
+                </button>
+                <span className="font-semibold text-gray-800">
+                  {detailMonth.getFullYear()}年{detailMonth.getMonth() + 1}月
                 </span>
+                <button
+                  onClick={() =>
+                    setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() + 1, 1))
+                  }
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500 -rotate-90" />
+                </button>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {selectedStudent.type === 'prepaid' && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-500 mb-1">剩余课时</div>
-                  <div
-                    className={`text-2xl font-bold ${
-                      selectedStudent.remainingHours <= 5 ? 'text-red-500' : 'text-gray-800'
-                    }`}
-                  >
-                    {selectedStudent.remainingHours} 节
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
+                  <div key={day} className="text-center text-xs text-gray-400 py-1">
+                    {day}
                   </div>
-                </div>
-              )}
-              {selectedStudent.type === 'postpaid' && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-500 mb-1">待结算金额</div>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {formatCurrency(selectedStudent.pendingAmount)}
-                  </div>
-                </div>
-              )}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-500 mb-1">课时费用</div>
-                <div className="text-2xl font-bold text-primary-600">
-                  {formatCurrency(selectedStudent.hourlyRate)}/节
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-700">
-                  {detailMonth.getFullYear()}年{detailMonth.getMonth() + 1}月课程
-                </h4>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() - 1, 1))
-                    }
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
-                  >
-                    <ChevronDown className="w-4 h-4 text-gray-500 rotate-90" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() + 1, 1))
-                    }
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
-                  >
-                    <ChevronDown className="w-4 h-4 text-gray-500 -rotate-90" />
-                  </button>
-                </div>
+                ))}
               </div>
 
               {(() => {
+                const year = detailMonth.getFullYear();
+                const month = detailMonth.getMonth();
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
-                const monthTotal = monthCourses.reduce((sum, c) => sum + c.rate, 0);
+                const courseDates = new Set(monthCourses.map((c) => c.date));
+
                 return (
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="p-3 bg-primary-50 rounded-lg">
-                      <div className="text-xs text-gray-500">本月课时</div>
-                      <div className="text-xl font-bold text-primary-600">{monthCourses.length} 节</div>
-                    </div>
-                    <div className="p-3 bg-orange-50 rounded-lg">
-                      <div className="text-xs text-gray-500">本月收入</div>
-                      <div className="text-xl font-bold text-orange-600">{formatCurrency(monthTotal)}</div>
-                    </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: firstDay }).map((_, i) => (
+                      <div key={`empty-${i}`} className="aspect-square" />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = toDateStr(new Date(year, month, day));
+                      const hasCourse = courseDates.has(dateStr);
+                      const dayCourseCount = monthCourses.filter((c) => c.date === dateStr).length;
+                      const isSelected = selectedCourses.some((id) =>
+                        monthCourses.filter((c) => c.date === dateStr).some((c) => c.id === id)
+                      );
+
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => {
+                            const dayCourseIds = monthCourses
+                              .filter((c) => c.date === dateStr)
+                              .map((c) => c.id);
+                            if (isSelected) {
+                              setSelectedCourses((prev) =>
+                                prev.filter((id) => !dayCourseIds.includes(id))
+                              );
+                            } else {
+                              setSelectedCourses((prev) => [...new Set([...prev, ...dayCourseIds])]);
+                            }
+                          }}
+                          className={`aspect-square rounded-lg flex flex-col items-center justify-center transition-all relative ${
+                            hasCourse
+                              ? isSelected
+                                ? 'bg-primary-500 text-white'
+                                : 'bg-primary-100 text-primary-700'
+                              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="text-sm font-medium">{day}</span>
+                          {hasCourse && (
+                            <span className={`text-xs ${isSelected ? 'text-white/80' : 'text-primary-500'}`}>
+                              {dayCourseCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               })()}
+            </div>
 
-              {selectedCourses.length > 0 && (
-                <div className="flex items-center justify-between mb-3 p-3 bg-red-50 rounded-lg">
-                  <span className="text-sm text-red-600">已选择 {selectedCourses.length} 节课</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedCourses([])}
-                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                    >
-                      取消
-                    </button>
-                    <button
-                      onClick={handleBatchDelete}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      删除
-                    </button>
-                  </div>
+            {selectedCourses.length > 0 && (
+              <div className="flex items-center justify-between p-2 bg-red-50 rounded-lg">
+                <span className="text-sm text-red-600">已选 {selectedCourses.length} 节课</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedCourses([])}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleBatchDelete}
+                    className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    删除
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {(() => {
-                const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
-                if (monthCourses.length === 0) {
-                  return <p className="text-gray-400 text-center py-4">本月暂无课程记录</p>;
-                }
-
-                const sortedCourses = [...monthCourses].sort(
-                  (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
-                );
-
-                const groupedByDate: { [date: string]: typeof sortedCourses } = {};
-                sortedCourses.forEach((course) => {
-                  if (!groupedByDate[course.date]) {
-                    groupedByDate[course.date] = [];
-                  }
-                  groupedByDate[course.date].push(course);
-                });
-
-                const dates = Object.keys(groupedByDate).sort();
-                const allSelected =
-                  selectedCourses.length > 0 &&
-                  selectedCourses.length === monthCourses.length;
-
+            {(() => {
+              const monthCourses = getStudentMonthCourses(selectedStudent.id, detailMonth);
+              if (monthCourses.length === 0) {
                 return (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">共 {dates.length} 天有课</span>
-                      <button
-                        onClick={() => toggleSelectAllCourses(monthCourses)}
-                        className="text-sm text-primary-600 hover:text-primary-700"
-                      >
-                        {allSelected ? '取消全选' : '全选'}
-                      </button>
-                    </div>
-                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                      {dates.map((date) => {
+                  <div className="text-center py-6 text-gray-400">
+                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">本月暂无课程</p>
+                  </div>
+                );
+              }
+
+              const groupedByDate: { [date: string]: typeof monthCourses } = {};
+              monthCourses.forEach((course) => {
+                if (!groupedByDate[course.date]) {
+                  groupedByDate[course.date] = [];
+                }
+                groupedByDate[course.date].push(course);
+              });
+
+              return (
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="text-xs text-gray-500 mb-2">课程时间</div>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {Object.keys(groupedByDate)
+                      .sort()
+                      .map((date) => {
                         const dayCourses = groupedByDate[date];
                         const dayDate = new Date(date);
-                        const dayTotal = dayCourses.reduce((sum, c) => sum + c.rate, 0);
-                        const dayAllSelected = dayCourses.every((c) =>
-                          selectedCourses.includes(c.id)
-                        );
-                        const someSelected = dayCourses.some((c) =>
-                          selectedCourses.includes(c.id)
-                        );
-
                         return (
-                          <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
-                            <div
-                              className="flex items-center justify-between p-2 bg-gray-50 cursor-pointer"
-                              onClick={() => {
-                                if (dayAllSelected) {
-                                  setSelectedCourses((prev) =>
-                                    prev.filter((id) => !dayCourses.some((c) => c.id === id))
-                                  );
-                                } else {
-                                  setSelectedCourses((prev) => {
-                                    const newIds = dayCourses
-                                      .filter((c) => !prev.includes(c.id))
-                                      .map((c) => c.id);
-                                    return [...prev, ...newIds];
-                                  });
-                                }
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                    dayAllSelected
-                                      ? 'bg-primary-500 border-primary-500'
-                                      : someSelected
-                                      ? 'bg-primary-200 border-primary-500'
-                                      : 'border-gray-300'
-                                  }`}
-                                >
-                                  {dayAllSelected && <Check className="w-3 h-3 text-white" />}
-                                  {!dayAllSelected && someSelected && (
-                                    <div className="w-2 h-0.5 bg-primary-500 rounded" />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className={`w-9 h-9 rounded-lg flex flex-col items-center justify-center ${
-                                      dayAllSelected
-                                        ? 'bg-primary-500 text-white'
-                                        : 'bg-primary-100 text-primary-700'
-                                    }`}
-                                  >
-                                    <span className="text-xs leading-none">
-                                      {dayDate.getMonth() + 1}月
-                                    </span>
-                                    <span className="text-sm font-bold leading-none">
-                                      {dayDate.getDate()}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-gray-500">
-                                      {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][dayDate.getDay()]}
-                                    </div>
-                                    <div className="text-xs text-gray-700 font-medium">
-                                      {dayCourses.length}节课 · {formatCurrency(dayTotal)}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
+                          <div key={date} className="flex items-center gap-2">
+                            <div className="w-7 text-xs text-gray-500 font-medium">
+                              {dayDate.getDate()}日
                             </div>
-                            <div className="divide-y divide-gray-100">
-                              {dayCourses.map((course) => {
-                                const isSelected = selectedCourses.includes(course.id);
-                                return (
-                                  <div
+                            <div className="flex-1 flex flex-wrap gap-1">
+                              {dayCourses
+                                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                                .map((course) => (
+                                  <span
                                     key={course.id}
-                                    className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${
-                                      isSelected
-                                        ? 'bg-primary-50'
-                                        : 'bg-white hover:bg-gray-50'
+                                    className={`text-xs px-1.5 py-0.5 rounded ${
+                                      selectedCourses.includes(course.id)
+                                        ? 'bg-primary-500 text-white'
+                                        : 'bg-gray-100 text-gray-600'
                                     }`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleCourseSelection(course.id);
-                                    }}
                                   >
-                                    <div
-                                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                                        isSelected
-                                          ? 'bg-primary-500 border-primary-500'
-                                          : 'border-gray-300'
-                                      }`}
-                                    >
-                                      {isSelected && <Check className="w-3 h-3 text-white" />}
-                                    </div>
-                                    <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                                    <span className="text-sm text-gray-700 flex-1">
-                                      {course.startTime} - {course.endTime}
-                                    </span>
-                                    <span className="text-sm font-semibold text-primary-600">
-                                      {formatCurrency(course.rate)}
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                                    {course.startTime}
+                                  </span>
+                                ))}
                             </div>
                           </div>
                         );
                       })}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  handleOpenEditModal(selectedStudent);
-                  setShowDetailModal(false);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                编辑信息
-              </button>
-              <button
-                onClick={handleOpenBatchScheduleModal}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                批量排课
-              </button>
-            </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </Modal>
