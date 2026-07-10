@@ -43,6 +43,7 @@ export type Action =
   | { type: 'DELETE_STUDENT'; payload: string }
   | { type: 'ADD_COURSE'; payload: Course }
   | { type: 'DELETE_COURSE'; payload: string }
+  | { type: 'DELETE_BATCH_COURSES'; payload: string[] }
   | { type: 'ADD_BATCH_COURSES'; payload: Course[] }
   | { type: 'ADD_LOG'; payload: Log }
   | { type: 'SET_SELECTED_DATE'; payload: string };

@@ -4,7 +4,6 @@ import { NavLink } from 'react-router-dom';
 const menuItems = [
   { icon: Calendar, label: '日历', path: '/' },
   { icon: Users, label: '学生', path: '/students' },
-  { icon: ListChecks, label: '批量', path: '/batch-schedule' },
   { icon: DollarSign, label: '薪资', path: '/salary' },
 ];
 

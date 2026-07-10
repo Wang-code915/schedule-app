@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Clock, DollarSign, User } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, DollarSign, User, Calendar, ChevronDown, Check, X } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Modal } from '@/components/Modal';
 import { useApp } from '@/contexts/AppContext';
-import { formatCurrency } from '@/utils/format';
-import { StudentType } from '@/types';
+import { formatCurrency, toDateStr, getMonthRange } from '@/utils/format';
+import { StudentType, Course } from '@/types';
 
 export const StudentsPage = () => {
-  const { state, addStudent, updateStudent, deleteStudent } = useApp();
+  const { state, addStudent, updateStudent, deleteStudent, deleteBatchCourses, addBatchCourses } = useApp();
   const { students, courses } = state;
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -19,6 +19,15 @@ export const StudentsPage = () => {
     type: 'prepaid' as StudentType,
     remainingHours: 0,
     hourlyRate: 0,
+  });
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [detailMonth, setDetailMonth] = useState(new Date());
+  const [showBatchScheduleModal, setShowBatchScheduleModal] = useState(false);
+  const [batchScheduleForm, setBatchScheduleForm] = useState({
+    startTime: '09:00',
+    endTime: '10:00',
+    selectedDates: [] as string[],
+    calendarDate: new Date(),
   });
 
   const handleOpenAddModal = () => {
@@ -71,6 +80,127 @@ export const StudentsPage = () => {
 
   const getStudentCourses = (studentId: string) => {
     return courses.filter((c) => c.studentId === studentId);
+  };
+
+  const getStudentMonthCourses = (studentId: string, month: Date) => {
+    const range = getMonthRange(month);
+    const start = toDateStr(range.start);
+    const end = toDateStr(range.end);
+    return courses.filter(
+      (c) => c.studentId === studentId && c.date >= start && c.date <= end
+    );
+  };
+
+  const toggleCourseSelection = (courseId: string) => {
+    setSelectedCourses((prev) =>
+      prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]
+    );
+  };
+
+  const toggleSelectAllCourses = (monthCourses: Course[]) => {
+    if (selectedCourses.length === monthCourses.length) {
+      setSelectedCourses([]);
+    } else {
+      setSelectedCourses(monthCourses.map((c) => c.id));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedCourses.length === 0) return;
+    if (confirm(`确定要删除选中的 ${selectedCourses.length} 节课吗？`)) {
+      deleteBatchCourses(selectedCourses);
+      setSelectedCourses([]);
+    }
+  };
+
+  const handleOpenBatchScheduleModal = () => {
+    if (!selectedStudent) return;
+    setBatchScheduleForm({
+      startTime: '09:00',
+      endTime: '10:00',
+      selectedDates: [],
+      calendarDate: new Date(),
+    });
+    setShowBatchScheduleModal(true);
+  };
+
+  const getBatchScheduleDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days: { date: string; day: number; isCurrentMonth: boolean; isSelected: boolean }[] = [];
+
+    const prevMonthDays = firstDay;
+    for (let i = prevMonthDays - 1; i >= 0; i--) {
+      const d = new Date(year, month, -i);
+      days.push({
+        date: toDateStr(d),
+        day: d.getDate(),
+        isCurrentMonth: false,
+        isSelected: false,
+      });
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
+      const dateStr = toDateStr(d);
+      days.push({
+        date: dateStr,
+        day: i,
+        isCurrentMonth: true,
+        isSelected: batchScheduleForm.selectedDates.includes(dateStr),
+      });
+    }
+
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({
+        date: toDateStr(d),
+        day: i,
+        isCurrentMonth: false,
+        isSelected: false,
+      });
+    }
+
+    return days;
+  };
+
+  const handleBatchScheduleSelectDate = (date: string) => {
+    setBatchScheduleForm((prev) => ({
+      ...prev,
+      selectedDates: prev.selectedDates.includes(date)
+        ? prev.selectedDates.filter((d) => d !== date)
+        : [...prev.selectedDates, date],
+    }));
+  };
+
+  const handleBatchScheduleSubmit = () => {
+    if (!selectedStudent || batchScheduleForm.selectedDates.length === 0) return;
+
+    if (
+      selectedStudent.type === 'prepaid' &&
+      selectedStudent.remainingHours < batchScheduleForm.selectedDates.length
+    ) {
+      alert(
+        `${selectedStudent.name}剩余${selectedStudent.remainingHours}课时，无法安排${batchScheduleForm.selectedDates.length}节课`
+      );
+      return;
+    }
+
+    const newCourses = batchScheduleForm.selectedDates.map((date) => ({
+      studentId: selectedStudent.id,
+      date,
+      startTime: batchScheduleForm.startTime,
+      endTime: batchScheduleForm.endTime,
+      rate: selectedStudent.hourlyRate,
+    }));
+
+    addBatchCourses(newCourses);
+    setShowBatchScheduleModal(false);
+    alert(`成功为${selectedStudent.name}安排${newCourses.length}节课`);
   };
 
   const prepaidStudents = students.filter((s) => s.type === 'prepaid');
@@ -480,44 +610,246 @@ export const StudentsPage = () => {
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-3">近期课程</h4>
-              {getStudentCourses(selectedStudent.id).length === 0 ? (
-                <p className="text-gray-400 text-center py-4">暂无课程记录</p>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">
+                  {detailMonth.getFullYear()}年{detailMonth.getMonth() + 1}月课程
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() - 1, 1))
+                    }
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4 text-gray-500 rotate-90" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setDetailMonth(new Date(detailMonth.getFullYear(), detailMonth.getMonth() + 1, 1))
+                    }
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4 text-gray-500 -rotate-90" />
+                  </button>
+                </div>
+              </div>
+
+              {selectedCourses.length > 0 && (
+                <div className="flex items-center justify-between mb-3 p-3 bg-red-50 rounded-lg">
+                  <span className="text-sm text-red-600">已选择 {selectedCourses.length} 节课</span>
+                  <button
+                    onClick={handleBatchDelete}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    批量删除
+                  </button>
+                </div>
+              )}
+
+              {getStudentMonthCourses(selectedStudent.id, detailMonth).length === 0 ? (
+                <p className="text-gray-400 text-center py-4">本月暂无课程记录</p>
               ) : (
-                <div className="space-y-2">
-                  {getStudentCourses(selectedStudent.id)
-                    .sort((a, b) => b.date.localeCompare(a.date))
-                    .slice(0, 5)
-                    .map((course) => (
-                      <div
-                        key={course.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
-                      >
-                        <div>
-                          <span className="text-gray-800">{course.date}</span>
-                          <span className="text-gray-400 mx-2">|</span>
-                          <span className="text-gray-600">
-                            {course.startTime} - {course.endTime}
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => toggleSelectAllCourses(getStudentMonthCourses(selectedStudent.id, detailMonth))}
+                      className="text-sm text-primary-600 hover:text-primary-700"
+                    >
+                      {selectedCourses.length === getStudentMonthCourses(selectedStudent.id, detailMonth).length
+                        ? '取消全选'
+                        : '全选'}
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {getStudentMonthCourses(selectedStudent.id, detailMonth)
+                      .sort((a, b) => a.date.localeCompare(a.date) || a.startTime.localeCompare(b.startTime))
+                      .map((course) => (
+                        <div
+                          key={course.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg text-sm cursor-pointer transition-colors ${
+                            selectedCourses.includes(course.id)
+                              ? 'bg-primary-50 border-2 border-primary-500'
+                              : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                          }`}
+                          onClick={() => toggleCourseSelection(course.id)}
+                        >
+                          <div
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedCourses.includes(course.id)
+                                ? 'bg-primary-500 border-primary-500'
+                                : 'border-gray-300'
+                            }`}
+                          >
+                            {selectedCourses.includes(course.id) && (
+                              <Check className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-gray-800">{course.date}</span>
+                            <span className="text-gray-400 mx-2">|</span>
+                            <span className="text-gray-600">
+                              {course.startTime} - {course.endTime}
+                            </span>
+                          </div>
+                          <span className="text-primary-600 font-medium">
+                            {formatCurrency(course.rate)}
                           </span>
                         </div>
-                        <span className="text-primary-600 font-medium">
-                          {formatCurrency(course.rate)}
-                        </span>
-                      </div>
-                    ))}
-                </div>
+                      ))}
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => {
                   handleOpenEditModal(selectedStudent);
                   setShowDetailModal(false);
                 }}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 编辑信息
+              </button>
+              <button
+                onClick={handleOpenBatchScheduleModal}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                批量排课
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={showBatchScheduleModal} onClose={() => setShowBatchScheduleModal(false)} title="批量排课" size="lg">
+        {selectedStudent && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div
+                className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold ${
+                  selectedStudent.type === 'prepaid'
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-orange-100 text-orange-600'
+                }`}
+              >
+                {selectedStudent.name.charAt(0)}
+              </div>
+              <div>
+                <div className="font-medium text-gray-800">{selectedStudent.name}</div>
+                <div className="text-sm text-gray-500">
+                  {selectedStudent.type === 'prepaid'
+                    ? `剩余${selectedStudent.remainingHours}课时`
+                    : '后付费'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">选择日期</h4>
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() =>
+                    setBatchScheduleForm((prev) => ({
+                      ...prev,
+                      calendarDate: new Date(prev.calendarDate.getFullYear(), prev.calendarDate.getMonth() - 1, 1),
+                    }))
+                  }
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500 rotate-90" />
+                </button>
+                <span className="font-medium text-gray-800">
+                  {batchScheduleForm.calendarDate.getFullYear()}年{batchScheduleForm.calendarDate.getMonth() + 1}月
+                </span>
+                <button
+                  onClick={() =>
+                    setBatchScheduleForm((prev) => ({
+                      ...prev,
+                      calendarDate: new Date(prev.calendarDate.getFullYear(), prev.calendarDate.getMonth() + 1, 1),
+                    }))
+                  }
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500 -rotate-90" />
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
+                  <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {getBatchScheduleDaysInMonth(batchScheduleForm.calendarDate).map(({ date, day, isCurrentMonth, isSelected }) => (
+                  <button
+                    key={date}
+                    onClick={() => isCurrentMonth && handleBatchScheduleSelectDate(date)}
+                    disabled={!isCurrentMonth}
+                    className={`aspect-square flex items-center justify-center rounded text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-primary-600 text-white'
+                        : isCurrentMonth
+                        ? 'bg-gray-50 hover:bg-gray-100 text-gray-800'
+                        : 'bg-transparent text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
+                <input
+                  type="time"
+                  value={batchScheduleForm.startTime}
+                  onChange={(e) =>
+                    setBatchScheduleForm((prev) => ({ ...prev, startTime: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
+                <input
+                  type="time"
+                  value={batchScheduleForm.endTime}
+                  onChange={(e) =>
+                    setBatchScheduleForm((prev) => ({ ...prev, endTime: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
+            {batchScheduleForm.selectedDates.length > 0 && (
+              <div className="p-3 bg-primary-50 rounded-lg">
+                <div className="text-sm text-primary-700 mb-2">预估课时：{batchScheduleForm.selectedDates.length}节</div>
+                <div className="text-xl font-bold text-primary-600">
+                  {formatCurrency(selectedStudent.hourlyRate * batchScheduleForm.selectedDates.length)}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowBatchScheduleModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleBatchScheduleSubmit}
+                disabled={batchScheduleForm.selectedDates.length === 0}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认排课 ({batchScheduleForm.selectedDates.length}节)
               </button>
             </div>
           </div>

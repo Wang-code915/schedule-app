@@ -145,6 +145,43 @@ const reducer = (state: AppState, action: Action): AppState => {
         logs: newLogs,
       };
     }
+    case 'DELETE_BATCH_COURSES': {
+      const courseIds = action.payload;
+      const coursesToDelete = state.courses.filter((c) => courseIds.includes(c.id));
+      
+      let newStudents = state.students;
+      let newLogs = state.logs;
+
+      coursesToDelete.forEach((course) => {
+        const student = newStudents.find((s) => s.id === course.studentId);
+        if (student) {
+          if (student.type === 'prepaid') {
+            const newStudent: Student = {
+              ...student,
+              remainingHours: student.remainingHours + 1,
+            };
+            newStudents = newStudents.map((s) =>
+              s.id === student.id ? newStudent : s
+            );
+          } else {
+            const newStudent: Student = {
+              ...student,
+              pendingAmount: Math.max(0, student.pendingAmount - course.rate),
+            };
+            newStudents = newStudents.map((s) =>
+              s.id === student.id ? newStudent : s
+            );
+          }
+        }
+      });
+
+      return {
+        ...state,
+        students: newStudents,
+        courses: state.courses.filter((c) => !courseIds.includes(c.id)),
+        logs: newLogs,
+      };
+    }
     case 'ADD_BATCH_COURSES': {
       let newStudents = state.students;
       let newLogs = state.logs;
@@ -223,6 +260,7 @@ interface AppContextType {
   deleteStudent: (id: string) => void;
   addCourse: (course: Omit<Course, 'id' | 'createdAt'>) => void;
   deleteCourse: (id: string) => void;
+  deleteBatchCourses: (courseIds: string[]) => void;
   addBatchCourses: (courses: Omit<Course, 'id' | 'createdAt'>[]) => void;
   setSelectedDate: (date: string) => void;
 }
@@ -274,6 +312,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'DELETE_COURSE', payload: id });
   };
 
+  const deleteBatchCourses = (courseIds: string[]) => {
+    dispatch({ type: 'DELETE_BATCH_COURSES', payload: courseIds });
+  };
+
   const addBatchCourses = (courses: Omit<Course, 'id' | 'createdAt'>[]) => {
     const fullCourses = courses.map((c) => ({
       ...c,
@@ -297,6 +339,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deleteStudent,
         addCourse,
         deleteCourse,
+        deleteBatchCourses,
         addBatchCourses,
         setSelectedDate,
       }}
