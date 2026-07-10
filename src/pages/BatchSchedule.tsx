@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, Clock, Calendar, ChevronDown, UserPlus } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { useApp } from '@/contexts/AppContext';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, toDateStr } from '@/utils/format';
 
 export const BatchSchedulePage = () => {
   const { state, addBatchCourses } = useApp();
@@ -31,7 +31,7 @@ export const BatchSchedulePage = () => {
     for (let i = prevMonthDays - 1; i >= 0; i--) {
       const d = new Date(year, month, -i);
       days.push({
-        date: d.toISOString().split('T')[0],
+        date: toDateStr(d),
         day: d.getDate(),
         isCurrentMonth: false,
         isSelected: false,
@@ -40,7 +40,7 @@ export const BatchSchedulePage = () => {
 
     for (let i = 1; i <= daysInMonth; i++) {
       const d = new Date(year, month, i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toDateStr(d);
       days.push({
         date: dateStr,
         day: i,
@@ -53,7 +53,7 @@ export const BatchSchedulePage = () => {
     for (let i = 1; i <= remainingDays; i++) {
       const d = new Date(year, month + 1, i);
       days.push({
-        date: d.toISOString().split('T')[0],
+        date: toDateStr(d),
         day: i,
         isCurrentMonth: false,
         isSelected: false,

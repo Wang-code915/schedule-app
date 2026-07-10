@@ -2,8 +2,9 @@ import { createContext, useContext, useReducer, useEffect, ReactNode } from 'rea
 import { AppState, Action, Student, Course, Log } from '@/types';
 import { mockStudents, mockCourses, mockLogs } from '@/data/mockData';
 import { loadState, saveState, generateId } from '@/utils/storage';
+import { todayStr, toDateStr } from '@/utils/format';
 
-const today = new Date().toISOString().split('T')[0];
+const today = todayStr();
 
 const initialState: AppState = {
   students: mockStudents,

@@ -1,7 +1,8 @@
 import { Student, Course, Log } from '@/types';
+import { toDateStr, todayStr } from '@/utils/format';
 
 const today = new Date();
-const formatDate = (date: Date) => date.toISOString().split('T')[0];
+const formatDate = (date: Date) => toDateStr(date);
 
 export const mockStudents: Student[] = [
   {

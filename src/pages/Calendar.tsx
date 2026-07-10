@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Clock, Trash2, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Clock, Trash2 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Modal } from '@/components/Modal';
 import { useApp } from '@/contexts/AppContext';
-import { formatDate, getWeekday, getMonthDays } from '@/utils/format';
+import { formatDate, getWeekday, getMonthDays, toDateStr, todayStr } from '@/utils/format';
 import { formatCurrency } from '@/utils/format';
 
 export const CalendarPage = () => {
   const { state, setSelectedDate, addCourse, deleteCourse } = useApp();
-  const { students, courses, logs, selectedDate } = state;
+  const { students, courses, selectedDate } = state;
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
@@ -33,12 +33,12 @@ export const CalendarPage = () => {
   };
 
   const handleDateClick = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toDateStr(date);
     setSelectedDate(dateStr);
     setCourseForm((prev) => ({ ...prev, date: dateStr }));
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
 
   const dayCourses = courses.filter((c) => c.date === selectedDate);
   const sortedCourses = [...dayCourses].sort(
@@ -85,13 +85,10 @@ export const CalendarPage = () => {
     }
   };
 
-  const recentLogs = logs.slice(0, 5);
-
   return (
     <Layout title="排课日历">
-      <div className="grid grid-cols-12 gap-4 md:gap-6">
-        <div className="col-span-12 lg:col-span-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <button
@@ -132,7 +129,7 @@ export const CalendarPage = () => {
                 <div key={i} className="h-10 md:h-16" />
               ))}
               {days.map((date) => {
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = toDateStr(date);
                 const hasCourses = courses.some((c) => c.date === dateStr);
                 const isToday = dateStr === today;
                 const isSelected = dateStr === selectedDate;
@@ -163,9 +160,9 @@ export const CalendarPage = () => {
                 );
               })}
             </div>
-          </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mt-4 md:mt-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mt-4 md:mt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base md:text-lg font-semibold text-gray-800">
                 {formatDate(selectedDate)} {getWeekday(selectedDate)}
@@ -245,33 +242,6 @@ export const CalendarPage = () => {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="col-span-12 lg:col-span-4">
-          <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="w-5 h-5 text-primary-600" />
-              <h3 className="text-base md:text-lg font-semibold text-gray-800">操作日志</h3>
-            </div>
-            {recentLogs.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">暂无日志</p>
-            ) : (
-              <div className="space-y-3">
-                {recentLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3 bg-gray-50 rounded-lg text-sm"
-                  >
-                    <div className="text-gray-800">{log.content}</div>
-                    <div className="text-gray-400 text-xs mt-1">
-                      {new Date(log.createdAt).toLocaleString('zh-CN')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 

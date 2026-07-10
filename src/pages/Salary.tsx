@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Calendar, DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { useApp } from '@/contexts/AppContext';
-import { formatCurrency, getMonthRange } from '@/utils/format';
+import { formatCurrency, getMonthRange, toDateStr, todayStr } from '@/utils/format';
 
 export const SalaryPage = () => {
   const { state } = useApp();
@@ -10,14 +10,13 @@ export const SalaryPage = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const today = todayStr();
   const monthStart = getMonthRange(selectedMonth).start;
   const monthEnd = getMonthRange(selectedMonth).end;
 
-  const todayCourses = courses.filter((c) => c.date === todayStr);
+  const todayCourses = courses.filter((c) => c.date === today);
   const monthCourses = courses.filter(
-    (c) => c.date >= monthStart.toISOString().split('T')[0] && c.date <= monthEnd.toISOString().split('T')[0]
+    (c) => c.date >= toDateStr(monthStart) && c.date <= toDateStr(monthEnd)
   );
 
   const todayIncome = todayCourses.reduce((sum, c) => sum + c.rate, 0);
@@ -56,8 +55,8 @@ export const SalaryPage = () => {
   const prevMonthEnd = getMonthRange(prevMonth).end;
   const prevMonthCourses = courses.filter(
     (c) =>
-      c.date >= prevMonthStart.toISOString().split('T')[0] &&
-      c.date <= prevMonthEnd.toISOString().split('T')[0]
+      c.date >= toDateStr(prevMonthStart) &&
+      c.date <= toDateStr(prevMonthEnd)
   );
   const prevMonthIncome = prevMonthCourses.reduce((sum, c) => sum + c.rate, 0);
 
