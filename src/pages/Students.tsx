@@ -627,24 +627,24 @@ export const StudentsPage = () => {
                 return (
                   <div className="grid grid-cols-7 gap-1">
                     {Array.from({ length: firstDay }).map((_, i) => (
-                      <div key={`empty-${i}`} className="aspect-square" />
+                      <div key={`empty-${i}`} className="pb-4" />
                     ))}
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                       const day = i + 1;
                       const dateStr = toDateStr(new Date(year, month, day));
                       const hasCourse = courseDates.has(dateStr);
-                      const dayCourseCount = monthCourses.filter((c) => c.date === dateStr).length;
+                      const dayCourses = monthCourses
+                        .filter((c) => c.date === dateStr)
+                        .sort((a, b) => a.startTime.localeCompare(b.startTime));
                       const isSelected = selectedCourses.some((id) =>
-                        monthCourses.filter((c) => c.date === dateStr).some((c) => c.id === id)
+                        dayCourses.some((c) => c.id === id)
                       );
 
                       return (
                         <button
                           key={day}
                           onClick={() => {
-                            const dayCourseIds = monthCourses
-                              .filter((c) => c.date === dateStr)
-                              .map((c) => c.id);
+                            const dayCourseIds = dayCourses.map((c) => c.id);
                             if (isSelected) {
                               setSelectedCourses((prev) =>
                                 prev.filter((id) => !dayCourseIds.includes(id))
@@ -653,7 +653,7 @@ export const StudentsPage = () => {
                               setSelectedCourses((prev) => [...new Set([...prev, ...dayCourseIds])]);
                             }
                           }}
-                          className={`aspect-square rounded-lg flex flex-col items-center justify-center transition-all relative ${
+                          className={`pb-4 rounded-lg flex flex-col items-center transition-all relative ${
                             hasCourse
                               ? isSelected
                                 ? 'bg-primary-500 text-white'
@@ -661,11 +661,23 @@ export const StudentsPage = () => {
                               : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                           }`}
                         >
-                          <span className="text-sm font-medium">{day}</span>
+                          <span className="text-sm font-medium pt-1">{day}</span>
                           {hasCourse && (
-                            <span className={`text-xs ${isSelected ? 'text-white/80' : 'text-primary-500'}`}>
-                              {dayCourseCount}
-                            </span>
+                            <div className="flex flex-col items-center gap-0.5 mt-1">
+                              {dayCourses.slice(0, 3).map((course, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`text-xs truncate max-w-full ${isSelected ? 'text-white/90' : 'text-primary-600'}`}
+                                >
+                                  {course.startTime}
+                                </span>
+                              ))}
+                              {dayCourses.length > 3 && (
+                                <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-primary-500'}`}>
+                                  +{dayCourses.length - 3}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </button>
                       );
